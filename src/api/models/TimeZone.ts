@@ -39,7 +39,7 @@ async function populateTimezones() {
 }
 
 // Synchronize the Sequelize models with the database
-Timezone.sync({ force: true })
+Timezone.sync({ alter: true })
   .then(() => {
     console.log("Database synchronized time zoned");
     populateTimezones();

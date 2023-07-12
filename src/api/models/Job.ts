@@ -6,7 +6,7 @@ import User from "./User";
 const Job = database.define("Job", {
   jobId: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
   },
   type: {
     type: DataTypes.STRING,
@@ -14,6 +14,10 @@ const Job = database.define("Job", {
   },
   status: {
     type: DataTypes.STRING,
+    allowNull: false,
+  },
+  scheduled_at: {
+    type: DataTypes.DATE,
     allowNull: false,
   },
   retried: {

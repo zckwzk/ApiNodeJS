@@ -6,6 +6,7 @@ const sequelize = new Sequelize("challenge", "root", "admin", {
   host: "127.0.0.1",
   port: 3306,
   dialect: "mysql",
+  timezone: "+00:00",
 });
 
 // Synchronize the Sequelize models with the database
