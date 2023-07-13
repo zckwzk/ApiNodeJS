@@ -32,19 +32,14 @@ routes(app);
 
 const handleSendMessage = async () => {
   console.log("cron show");
-  const currentDate = moment().format("MM-DD");
-  const currentTime = moment().format("HH:mm");
-  // const query = `
-  //   SELECT *
-  //   FROM Users
-  //   WHERE DATE_FORMAT(CONVERT_TZ(birthdate, 'UTC', location), '%m-%d') = :currentDate
-  //     AND DATE_FORMAT(CONVERT_TZ(NOW(), 'UTC', location), '%H:%i') = '09:00'
-  // `;
+  const currentDate = moment().format("MM");
+  // WHERE DATE_FORMAT(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite), '%m') = :currentDate
   const query = `
-    SELECT *, Timezones.name as name_timezone 
+    SELECT *,Users.id as user_id, Timezones.name as name_timezone 
     FROM Users
     left join Timezones on Users.TimezoneId = Timezones.id
-    WHERE DATE_FORMAT(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite), '%m-%d') = :currentDate
+    WHERE MONTH(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) > MONTH(CURRENT_DATE())
+    OR (MONTH(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) = MONTH(CURRENT_DATE()) AND DAY(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) >= DAY(CURRENT_DATE()))
   `;
   try {
     const users = await database.query(query, {
@@ -57,22 +52,20 @@ const handleSendMessage = async () => {
       FROM Jobs
       WHERE scheduled_at = :sendate
       AND type = 'birthday'
+      AND UserId = :userid
     `;
       let arrayDateTime = user.birthdate.split("-");
       arrayDateTime[0] = moment().format("YYYY");
       user.birthdate = arrayDateTime.join("-");
-      // Convert the user's birthdate to UTC
-      const localUserBirthdate = moment
-        .tz(user.birthdate + " 09:00:00", user.name_timezone)
-        .utcOffset("+00:00")
-        .format("YYYY-MM-DD HH:mm:ss");
-      // const birthdateUTC = moment(localUserBirthdate)
-      //   .utc()
-      //   .format("YYYY-MM-DD HH:mm:ss");
-      console.log(localUserBirthdate);
+
       const jobs = await database.query(findJob, {
         replacements: {
-          sendate: localUserBirthdate,
+          sendate: moment
+            .tz(user.birthdate + " 09:00:00", user.name_timezone)
+            .utcOffset("+00:00")
+            .format("YYYY-MM-DD HH:mm:ss"),
+          // sendate: localUserBirthdate,
+          userid: user.user_id,
         },
         type: QueryTypes.SELECT,
       });
@@ -83,7 +76,11 @@ const handleSendMessage = async () => {
         await Job.create({
           type: "birthday",
           status: "pending",
-          scheduled_at: localUserBirthdate,
+          scheduled_at: moment
+            .tz(user.birthdate + " 09:00:00", user.name_timezone)
+            .utcOffset("+07:00")
+            .format("YYYY-MM-DD HH:mm:ss"),
+          UserId: user.user_id,
         });
       }
       // console.log(job);
