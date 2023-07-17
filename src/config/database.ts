@@ -7,17 +7,7 @@ const sequelize = new Sequelize("challenge", "root", "admin", {
   port: 3306,
   dialect: "mysql",
   timezone: "+00:00",
+  logging: false,
 });
-
-// Synchronize the Sequelize models with the database
-sequelize
-  .sync({ alter: true })
-  .then(() => {
-    console.log("Database synchronized");
-    // populateTimezones();
-  })
-  .catch((error) => {
-    console.error("Failed to synchronize database:", error);
-  });
 
 export default sequelize;

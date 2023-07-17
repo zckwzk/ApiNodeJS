@@ -4,10 +4,6 @@ import User from "./User";
 // Define User model
 // Define Job model
 const Job = database.define("Job", {
-  jobId: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
   type: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -20,14 +16,26 @@ const Job = database.define("Job", {
     type: DataTypes.DATE,
     allowNull: false,
   },
-  retried: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false,
+  retries: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  retryDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 });
 
 // Associate Job with User
 User.hasMany(Job);
 Job.belongsTo(User);
+
+Job.sync({ alter: true })
+  .then(() => {
+    console.log("Table job synchronized");
+  })
+  .catch((error: any) => {
+    console.error("Failed to synchronize job:", error);
+  });
 
 export default Job;

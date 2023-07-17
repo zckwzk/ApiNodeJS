@@ -1,0 +1,17 @@
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Mocha Tests",
+  "runtimeArgs": [
+    "${workspaceFolder}/node_modules/ts-mocha/bin/ts-mocha",
+    "--timeout",
+    "999999",
+    "-r",
+    "esm",
+    "-p",
+    "${workspaceFolder}/tsconfig.json",
+    "${workspaceFolder}/src/tests/*.test.ts"
+  ],
+  "console": "integratedTerminal",
+  "protocol": "inspector"
+}

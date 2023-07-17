@@ -2,10 +2,18 @@ import moment from "moment-timezone";
 import database from "../../config/database";
 import { DataTypes } from "sequelize";
 import Timezone from "./TimeZone";
-// Define User model
+
 // Define User model
 const User = database.define("User", {
-  name: {
+  firstname: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lastname: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
     type: DataTypes.STRING,
     allowNull: false,
   },
@@ -36,7 +44,7 @@ const User = database.define("User", {
 });
 
 User.belongsTo(Timezone);
-User.sync({ alter: true })
+User.sync({})
   .then(() => {
     console.log("Database User synchronized");
   })

@@ -4,6 +4,7 @@ import User from "./models/User";
 
 import moment from "moment-timezone";
 import Timezone from "./models/TimeZone";
+import Job from "./models/Job";
 
 type ReqQuery = {
   search: string;
@@ -45,19 +46,57 @@ const routes = (app: Express) => {
 
   // Route to add a new user
   app.post("/users", async (req, res) => {
-    const { name, location, birthdate, timezoneId } = req.body;
+    const { email, firstname, lastname, location, birthdate } = req.body;
 
+    if (!email || !firstname || !lastname || !location || !birthdate) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // Retrieve timezoneId based on location name
+    const timezone = await Timezone.findOne({ where: { name: location } });
+
+    const timezoneId = timezone ? timezone.dataValues?.id : null;
     try {
       const user = await User.create({
-        name,
+        email,
+        firstname,
+        lastname,
         location,
         birthdate,
         TimezoneId: timezoneId,
       });
       res.status(201).json({ message: "User created successfully", user });
     } catch (error) {
-      console.error("Failed to create user:", error);
+      // console.error("Failed to create user:", error);
       res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  app.delete("/users/:userId", async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+      // Find the user by ID
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Delete the user and unsent jobs associated with the user
+      await Job.destroy({
+        where: {
+          userId,
+          status: "pending",
+        },
+      });
+
+      await user.destroy();
+
+      res.json({ message: "User and unsent jobs deleted successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
 };

@@ -25,7 +25,6 @@ async function populateTimezones() {
     const timezones = moment.tz.names();
 
     for (const timezone of timezones) {
-      console.log(moment.tz(timezone).format("Z"));
       await Timezone.create({
         name: timezone,
         offsite: String(moment.tz(timezone).format("Z")),
