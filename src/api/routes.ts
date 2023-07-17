@@ -99,6 +99,50 @@ const routes = (app: Express) => {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
+  // Route to update a user
+  app.put("/users/:id", async (req, res) => {
+    const { id } = req.params;
+    const { email, firstname, lastname, location, birthdate } = req.body;
+
+    try {
+      const user = await User.findByPk(id);
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update the user's properties
+      let tempEmail = email || user.dataValues.email;
+      let tempFirstname = firstname || user.dataValues.firstname;
+      let tempLastname = lastname || user.dataValues.lastname;
+      let tempLocation = location || user.dataValues.location;
+      let tempBirthdate = birthdate || user.dataValues.birthdate;
+
+      user.update({
+        email: tempEmail,
+        firstname: tempFirstname,
+        lastname: tempLastname,
+        location: tempLocation,
+        birthdate: tempBirthdate,
+      });
+
+      await user.save();
+
+      // Delete the user and unsent jobs associated with the user, it will generate automatically
+      await Job.destroy({
+        where: {
+          userId: id,
+          status: "pending",
+        },
+      });
+
+      res.status(200).json({ message: "User updated successfully", user });
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
 };
 
 export default routes;

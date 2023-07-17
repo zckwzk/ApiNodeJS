@@ -119,7 +119,7 @@ describe("User API Tests", () => {
     });
   });
 
-  describe("Birthday and Anniversary Message Tests", () => {
+  describe("Birthday Message Tests", () => {
     let users: any;
 
     before(() => {
