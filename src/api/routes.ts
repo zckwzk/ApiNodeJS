@@ -6,6 +6,8 @@ import moment from "moment-timezone";
 import Timezone from "./models/TimeZone";
 import Job from "./models/Job";
 
+import { userRoute } from "./routes/index";
+
 type ReqQuery = {
   search: string;
 };
@@ -14,6 +16,8 @@ const routes = (app: Express) => {
   // Middleware to parse JSON request body
   app.use(express.json());
 
+  //
+  app.use("/user", userRoute);
   // Default test
   app.get("/test", (req: Request, res: Response) => {
     const timeZone = Timezone.length;
