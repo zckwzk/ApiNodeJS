@@ -19,7 +19,7 @@ const createUser = async (userObj: any) => {
     const timezone = await Timezone.findOne({ where: { name: location } });
 
     if (!timezone) {
-      throw new Error("Location cant be found");
+      throw new Error("Location is not valid");
     }
 
     const timezoneId = timezone.dataValues?.id;
@@ -35,6 +35,7 @@ const createUser = async (userObj: any) => {
 
     return user;
   } catch (error) {
+    console.log(error);
     return Promise.reject(error);
   }
 };

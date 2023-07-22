@@ -16,6 +16,15 @@ const User = database.define("User", {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
+    unique: {
+      name: "email",
+      msg: "email already taken",
+    },
+    validate: {
+      isEmail: {
+        msg: "Please use correct email format",
+      },
+    },
   },
   location: {
     type: DataTypes.STRING,
@@ -29,7 +38,7 @@ const User = database.define("User", {
     },
   },
   birthdate: {
-    type: DataTypes.DATEONLY,
+    type: DataTypes.STRING,
     allowNull: false,
     validate: {
       isValidBirthdate(value: string) {
