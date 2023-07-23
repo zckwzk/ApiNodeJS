@@ -14,6 +14,7 @@ import axios from "axios";
 import { populateTimezones } from "./src/api/models/TimeZone";
 import { DATE } from "sequelize";
 import { error } from "node:console";
+import { birthdayQueque } from "./src/api/services/BirthdayJob";
 
 dotenv.config();
 
@@ -75,116 +76,8 @@ const addJobBirthday = async () => {
   } catch (error) {}
 };
 
-const runningJob = async () => {
-  const now = new Date();
-
-  try {
-    //query all the job that need to be send
-    const scheduledJobs = await Job.findAll({
-      where: {
-        scheduled_at: {
-          [Op.lte]: now,
-        },
-        status: {
-          [Op.or]: ["pending", "failed"],
-        },
-      },
-      include: {
-        model: User,
-        attributes: ["firstname", "lastname", "email"],
-        required: true, // Optional, to enforce the existence of a related user
-      },
-    });
-
-    scheduledJobs.map(async (item, index) => {
-      await item.update({ status: "ongoing" });
-      await item.save();
-
-      //check what type of the job
-      if (item.dataValues.type == "birthday") {
-        apiSendEmailHappy(
-          {
-            email: item.dataValues.User.email,
-            message: `hey ${item.dataValues.User.firstname} ${item.dataValues.User.lastname}, it's your birthday`,
-          },
-          item
-        );
-      }
-    });
-  } catch (error) {
-    console.error("Failed to retrieve scheduled jobs:", error);
-  }
-};
-
-const apiSendEmailHappy = async (
-  body: { email: string; message: string },
-  item: any
-) => {
-  const MAX_RETRIES_PER_DAY = 3; // Maximum number of retries allowed in one day
-
-  let retries = item.dataValues.retries || 0; // Get the current number of retries
-  try {
-    //check retry date
-    const retryDate = item.dataValues.retryDate; // Retrieve the stored retry date from the database or assign it to null initially
-    const currentDate = new Date();
-
-    //set 0 to retrie count in different day
-    if (
-      retryDate &&
-      currentDate.getFullYear() !== retryDate.getFullYear() &&
-      currentDate.getMonth() !== retryDate.getMonth() &&
-      currentDate.getDate() !== retryDate.getDate()
-    ) {
-      await item.update({
-        status: "ongoing",
-        retries: 0,
-        retryDate: new Date(),
-      });
-      await item.save();
-    }
-
-    //check maksimum retry
-    if (retries >= MAX_RETRIES_PER_DAY) {
-      await item.update({
-        status: "pending",
-        retries: 0,
-        // retryDate: new Date(),
-      });
-      await item.save();
-      console.log("Exceeded maximum retries for the day");
-      return;
-    }
-
-    // throw error;
-
-    //pause 1 minute when it retries
-    if (retries > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 60 * 1000));
-    }
-
-    //send email to api
-    let url = "https://email-service.digitalenvision.com.au/send-email";
-    await axios.post(url, body);
-
-    //update as complete
-    await item.update({ status: "complete" });
-    await item.save();
-  } catch (error) {
-    console.log(error);
-
-    //if there is an error set it as failed and increment the retries count.
-    await item.update({
-      status: "failed",
-      retries: retries + 1,
-      retryDate: new Date(),
-    });
-    await item.save();
-  }
-};
-
 setTimeout(() => {
   cron.schedule("* * * * * *", addJobBirthday);
-  cron.schedule("* * * * * *", runningJob);
 }, 2000);
 
 app.use(function (error: any, req: Request, res: Response, next: any) {
