@@ -76,8 +76,66 @@ const addJobBirthday = async () => {
   } catch (error) {}
 };
 
+const runningJob = async () => {
+  const now = new Date();
+
+  try {
+    //query all the job that need to be send
+    const scheduledJobs = await Job.findAll({
+      where: {
+        scheduled_at: {
+          [Op.lte]: now,
+        },
+        status: {
+          [Op.or]: ["pending"],
+        },
+      },
+      include: {
+        model: User,
+        attributes: ["firstname", "lastname", "email"],
+        required: true, // Optional, to enforce the existence of a related user
+      },
+    });
+
+    scheduledJobs.map(async (item, index) => {
+      await item.update({ status: "ongoing" });
+      await item.save();
+
+      //check what type of the job
+      if (item.dataValues.type == "birthday") {
+        const jobId = `job:${item.dataValues.id}`;
+
+        try {
+          // Check if a job with the same jobId already exists in the queue
+          const existingJob = await birthdayQueque.getJob(jobId);
+
+          if (existingJob) {
+            console.log(
+              `Skipping job for user ${item.dataValues.id}. Job already exists in the queue.`
+            );
+          } else {
+            // Enqueue a new job
+            await birthdayQueque.add(
+              { jobId: item.dataValues.id, type: "birthday" },
+              { jobId }
+            );
+
+            console.log(`Job enqueued for user ${item.dataValues.id}`);
+          }
+        } catch (error) {
+          console.error("Failed to enqueue job:", error);
+          // Handle the error (e.g., log, retry, etc.)
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to retrieve scheduled jobs:", error);
+  }
+};
+
 setTimeout(() => {
   cron.schedule("* * * * * *", addJobBirthday);
+  cron.schedule("* * * * * *", runningJob);
 }, 2000);
 
 app.use(function (error: any, req: Request, res: Response, next: any) {
