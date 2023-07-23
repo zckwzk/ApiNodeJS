@@ -7,13 +7,8 @@ import User from "./src/api/models/User";
 import sequelize, { Sequelize, DataTypes, QueryTypes, Op } from "sequelize";
 import database from "./src/config/database";
 
-import Bull from "bull";
 import Job from "./src/api/models/Job";
-import { it } from "node:test";
-import axios from "axios";
-import { populateTimezones } from "./src/api/models/TimeZone";
-import { DATE } from "sequelize";
-import { error } from "node:console";
+
 import {
   addToBirthdayQueue,
   birthdayQueque,
@@ -29,52 +24,25 @@ routes(app);
 export default app;
 
 const addJobBirthday = async () => {
-  const query = `
-    SELECT *,Users.id as user_id, Timezones.name as name_timezone 
-    FROM Users
-    left join Timezones on Users.TimezoneId = Timezones.id
-    WHERE MONTH(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) > MONTH(CURRENT_DATE())
-    OR (MONTH(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) = MONTH(CURRENT_DATE()) AND DAY(CONVERT_TZ(birthdate, '+00:00', Timezones.offsite)) >= DAY(CURRENT_DATE()))
+  const query = `   
+  INSERT INTO Jobs (type, status, scheduled_at, UserId, createdAt, updatedAt)
+  SELECT 'birthday' AS type,
+        'pending' AS status,
+        CONVERT_TZ(CONCAT(YEAR(CURRENT_DATE()), '-', DATE_FORMAT(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite), '%m-%d 09:00:00')), Timezones.offsite, '+00:00') AS scheduled_at,
+        Users.id AS UserId,
+        NOW() as createdAt,
+        NOW() as updatedAt
+  FROM Users
+  LEFT JOIN Timezones ON Users.TimezoneId = Timezones.id
+  LEFT JOIN Jobs ON Users.id = Jobs.UserId
+  WHERE (MONTH(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) > MONTH(CURRENT_DATE())
+        OR (MONTH(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) = MONTH(CURRENT_DATE()) 
+        AND DAY(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) >= DAY(CURRENT_DATE())))
+  AND (Jobs.scheduled_at IS NULL or  YEAR(Jobs.scheduled_at) != YEAR(CURRENT_DATE()));
   `;
   try {
-    const users = await database.query(query, {
-      type: QueryTypes.SELECT,
-    });
-    users.forEach(async (user: any) => {
-      const findJob = `
-      SELECT *
-      FROM Jobs
-      WHERE scheduled_at = :sendate
-      AND type = 'birthday'
-      AND UserId = :userid
-    `;
-      let arrayDateTime = user.birthdate.split("-");
-      arrayDateTime[0] = moment().format("YYYY");
-      user.birthdate = arrayDateTime.join("-");
-
-      const jobs = await database.query(findJob, {
-        replacements: {
-          sendate: moment
-            .tz(user.birthdate + " 09:00:00", user.name_timezone)
-            .utcOffset("+00:00")
-            .format("YYYY-MM-DD HH:mm:ss"),
-          // sendate: localUserBirthdate,
-          userid: user.user_id,
-        },
-        type: QueryTypes.SELECT,
-      });
-
-      if (jobs.length == 0) {
-        await Job.create({
-          type: "birthday",
-          status: "pending",
-          scheduled_at: moment
-            .tz(user.birthdate + " 09:00:00", user.name_timezone)
-            .utcOffset("+07:00")
-            .format("YYYY-MM-DD HH:mm:ss"),
-          UserId: user.user_id,
-        });
-      }
+    await database.query(query, {
+      type: QueryTypes.INSERT,
     });
   } catch (error) {}
 };
