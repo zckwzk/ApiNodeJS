@@ -14,7 +14,10 @@ import axios from "axios";
 import { populateTimezones } from "./src/api/models/TimeZone";
 import { DATE } from "sequelize";
 import { error } from "node:console";
-import { birthdayQueque } from "./src/api/services/BirthdayJob";
+import {
+  addToBirthdayQueue,
+  birthdayQueque,
+} from "./src/api/services/BirthdayJob";
 
 dotenv.config();
 
@@ -103,29 +106,7 @@ const runningJob = async () => {
 
       //check what type of the job
       if (item.dataValues.type == "birthday") {
-        const jobId = `job:${item.dataValues.id}`;
-
-        try {
-          // Check if a job with the same jobId already exists in the queue
-          const existingJob = await birthdayQueque.getJob(jobId);
-
-          if (existingJob) {
-            console.log(
-              `Skipping job for user ${item.dataValues.id}. Job already exists in the queue.`
-            );
-          } else {
-            // Enqueue a new job
-            await birthdayQueque.add(
-              { jobId: item.dataValues.id, type: "birthday" },
-              { jobId }
-            );
-
-            console.log(`Job enqueued for user ${item.dataValues.id}`);
-          }
-        } catch (error) {
-          console.error("Failed to enqueue job:", error);
-          // Handle the error (e.g., log, retry, etc.)
-        }
+        addToBirthdayQueue(item?.dataValues.id);
       }
     });
   } catch (error) {

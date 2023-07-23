@@ -40,8 +40,33 @@ birthdayQueque.process(async function (job, done) {
 
     done();
   } catch (error) {
-    throw new Error("some unexpected error job");
+    console.log(error);
+    // throw new Error("some unexpected error job");
+    console.log("Error for running birthday job");
+    await jobItem?.update({
+      status: "failed",
+      retries: jobItem.dataValues.retries + 1,
+    });
+    await jobItem?.save();
   }
 });
 
-export { birthdayQueque };
+const addToBirthdayQueue = async (id: string) => {
+  const jobId = `job:${id}`;
+
+  try {
+    const existingJob = await birthdayQueque.getJob(jobId);
+
+    if (existingJob) {
+      console.log(`Skipping job for user. Job already exists in the queue.`);
+    } else {
+      // Enqueue a new job
+      await birthdayQueque.add({ jobId: id, type: "birthday" }, { jobId });
+      console.log(`Job enqueued for user ${id}`);
+    }
+  } catch (error) {
+    console.log("failed add to the queue");
+  }
+};
+
+export { birthdayQueque, addToBirthdayQueue };
