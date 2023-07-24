@@ -28,16 +28,16 @@ const addJobBirthday = async () => {
   INSERT INTO Jobs (type, status, scheduled_at, UserId, createdAt, updatedAt)
   SELECT 'birthday' AS type,
         'pending' AS status,
-        CONVERT_TZ(CONCAT(YEAR(CURRENT_DATE()), '-', DATE_FORMAT(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite), '%m-%d 09:00:00')), Timezones.offsite, '+00:00') AS scheduled_at,
+        CONCAT(YEAR(CURRENT_DATE()), '-',DATE_FORMAT(CONVERT_TZ(CONCAT(Users.birthdate, ' 09:00:00'), Timezones.offsite, '+00:00'),'%m-%d %H:%i:%s')) AS scheduled_at,
         Users.id AS UserId,
         NOW() as createdAt,
         NOW() as updatedAt
   FROM Users
   LEFT JOIN Timezones ON Users.TimezoneId = Timezones.id
   LEFT JOIN Jobs ON Users.id = Jobs.UserId
-  WHERE (MONTH(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) > MONTH(CURRENT_DATE())
-        OR (MONTH(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) = MONTH(CURRENT_DATE()) 
-        AND DAY(CONVERT_TZ(Users.birthdate, '+00:00', Timezones.offsite)) >= DAY(CURRENT_DATE())))
+  WHERE (MONTH(CONVERT_TZ(CONCAT(Users.birthdate, ' 09:00:00'),Timezones.offsite, '+00:00')) > MONTH(CURRENT_DATE())
+        OR (MONTH(CONVERT_TZ(CONCAT(Users.birthdate, ' 09:00:00'),Timezones.offsite, '+00:00')) = MONTH(CURRENT_DATE()) 
+        AND DAY(CONVERT_TZ(CONCAT(Users.birthdate, ' 09:00:00'),Timezones.offsite, '+00:00')) >= DAY(CURRENT_DATE())))
   AND (Jobs.scheduled_at IS NULL or  YEAR(Jobs.scheduled_at) != YEAR(CURRENT_DATE()));
   `;
   try {
